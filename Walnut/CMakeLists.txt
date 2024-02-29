@@ -20,7 +20,10 @@ add_library(Walnut STATIC ${SOURCES})
 
 # Link libraries
 target_link_libraries(Walnut PUBLIC
-    Vulkan::Vulkan
+    Vulkan::Vulkan # also includes glm
+    glfw
+    dwmapi
+    imgui
 )
 
 # Include directories
@@ -28,6 +31,7 @@ target_include_directories(Walnut PUBLIC
     ../vendor/glfw/include
     ../vendor/imgui
     ../vendor/stb_image
+    src
 )
 
 # Compiler options

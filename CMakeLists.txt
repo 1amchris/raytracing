@@ -25,6 +25,7 @@ target_include_directories(RayTracingApp PRIVATE
 target_link_directories(RayTracingApp PRIVATE
     vendor/glfw/${CMAKE_BUILD_TYPE}
     vendor/imgui/${CMAKE_BUILD_TYPE}
+    Walnut/${CMAKE_BUILD_TYPE}/src
 )
 
 target_link_libraries(RayTracingApp PRIVATE
