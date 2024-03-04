@@ -20,6 +20,7 @@
 #include <iomanip>
 #include <limits>
 
+#include "cuda/test.h"
 
 class DefaultLayer : public Walnut::Layer
 {
@@ -29,25 +30,25 @@ public:
 		m_ViewportWidth(0),
 		m_ViewportHeight(0)
 	{
-		{
+		{ /* Material 1 */
 			Material* material = new Material();
 			material->Albedo = { 0.161f, 0.565f, 0.710f }; // Neptune average color
 			material->Roughness = 0.4f;
 			m_ActiveScene.Materials.push_back(material);
 		}
-		{
+		{ /* Material 2 */
 			Material* material = new Material();
 			material->Albedo = { 0.1f, 0.2f, 0.8f };
 			material->Roughness = 0.1f;
 			m_ActiveScene.Materials.push_back(material);
 		}
-		{
+		{ /* Material 3 */
 			Material* material = new Material();
 			material->Albedo = { 1.0f, 0.25f, 1.0f };
 			material->Roughness = 0.2f;
 			m_ActiveScene.Materials.push_back(material);
 		}
-		{
+		{ /* Material 4 */
 			Material* material = new Material();
 			material->Albedo = { 1.0f, 0.7f, 0.25f };
 			material->Roughness = 0.2f;
@@ -55,42 +56,42 @@ public:
 			material->EmissionPower = 10.0f;
 			m_ActiveScene.Materials.push_back(material);
 		}
-		{
+		{ /* Material 5 */
 			Material* material = new Material();
 			material->Albedo = { 1.0f, 1.0f, 1.0f };
 			material->Roughness = 0.3f;
 			m_ActiveScene.Materials.push_back(material);
 		}
 
-		{
+		{ /* Sphere 1 */
 			Shapes::Sphere* sphere = new Shapes::Sphere();
 			sphere->MaterialIndex = 0;
 			sphere->Radius = 100.0f;
 			sphere->Position = glm::vec3{ 0.0f, -101.0f, 0.0f };
 			m_ActiveScene.Shapes.push_back(sphere);
 		}
-		{
+		{ /* Sphere 2 */
 			Shapes::Sphere* sphere = new Shapes::Sphere();
 			sphere->MaterialIndex = 2;
 			sphere->Radius = 0.5f;
 			sphere->Position = glm::vec3{ -1.0f, 0.5f, 10.0f };
 			m_ActiveScene.Shapes.push_back(sphere);
 		}
-		{
+		{ /* Sphere 3 */
 			Shapes::Sphere* sphere = new Shapes::Sphere();
 			sphere->MaterialIndex = 3;
 			sphere->Radius = 1.0f;
 			sphere->Position = glm::vec3{ 1.0f, 0.0f, 0.0f };
 			m_ActiveScene.Shapes.push_back(sphere);
 		}
-		{
+		{ /* Sphere 4 */
 			Shapes::Sphere* sphere = new Shapes::Sphere();
 			sphere->MaterialIndex = 2;
 			sphere->Radius = 10.0f;
 			sphere->Position = glm::vec3{ 6.0f, 2.5f, -15.0f };
 			m_ActiveScene.Shapes.push_back(sphere);
 		}
-		{
+		{ /* Plane */
 			Shapes::Plane* plane = new Shapes::Plane(glm::normalize(glm::vec3(1, 1, 0)), -2.0f);
 			plane->MaterialIndex = 1;
 			m_ActiveScene.Shapes.push_back(plane);
@@ -310,6 +311,9 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
 	spec.Name = "Check me out on Github: https://github.com/1amchris/raytracing";
 	spec.Width = 960;
 	spec.Height = 540;
+
+	// This is a CUDA test, to make sure it is possible to compute using the GPU
+	add_vectors_and_print_them(1000);
 
 	Walnut::Application* app = new Walnut::Application(spec);
 	app->PushLayer<DefaultLayer>();

@@ -1,14 +1,14 @@
 cmake_minimum_required(VERSION 3.21)
-project(RayTracingApp LANGUAGES CXX CUDA)
+project(CudaApp LANGUAGES CXX CUDA)
 
 set(CMAKE_CUDA_STANDARD 17)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-# set(CMAKE_VERBOSE_MAKEFILE ON)  # For debugging 
+set(CMAKE_VERBOSE_MAKEFILE ON)  # For debugging 
 
 set(ENTRYPOINT src/main.cu)
-file(GLOB_RECURSE SOURCES "src/*.cu" "src/*.cpp" "src/*.h" "src/*.hpp")
+file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.h" "src/*.hpp" "src/*.cu")
 list(FILTER SOURCES EXCLUDE REGEX ${ENTRYPOINT})
 
 add_executable(${PROJECT_NAME} ${ENTRYPOINT} ${SOURCES})
@@ -24,11 +24,6 @@ target_compile_options(${PROJECT_NAME} PRIVATE
     $<$<COMPILE_LANGUAGE:CXX>: /W3 /O2>
     $<$<COMPILE_LANGUAGE:CUDA>: -Xcudafe="--diag_suppress=20012">
 )
-# target_compile_options(${PROJECT_NAME} PRIVATE
-#     # $<$<CONFIG:Debug>:/std:c++17 /W3 /Od /Zi>
-#     # $<$<CONFIG:Release>:/std:c++17 /W3 /O2>
-#     # $<$<CONFIG:Dist>:/std:c++17 /W3 /O2>
-# )
 # # target_link_options(RayTracingApp PRIVATE
 # #     $<$<CONFIG:Debug>:/SUBSYSTEM:CONSOLE /DEBUG>
 # #     $<$<CONFIG:Release>:/SUBSYSTEM:CONSOLE /DEBUG>
