@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.21)
 project(RayTracing)
 
-set(APP_NAME RayTracingApp)
+set(APP_NAME RayMarchingApp)
 
 find_package(Vulkan REQUIRED)
 
