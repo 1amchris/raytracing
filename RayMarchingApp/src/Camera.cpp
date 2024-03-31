@@ -4,7 +4,7 @@
 #include <glm/gtx/quaternion.hpp>
 
 Camera::Camera(float verticalFOV, float nearPlane, float farPlane)
-	: m_VerticalFOV(verticalFOV), m_NearPlane(nearPlane), m_FarPlane(farPlane)
+	: VerticalFOV(verticalFOV), NearPlane(nearPlane), FarPlane(farPlane)
 {
 }
 
@@ -100,6 +100,10 @@ void Camera::OnResize(uint32_t width, uint32_t height)
 	m_ViewportWidth = width;
 	m_ViewportHeight = height;
 
+	OnProjectionChange();
+}
+
+void Camera::OnProjectionChange() {
 	RecalculateProjection();
 	RecalculateRayDirections();
 }
@@ -107,11 +111,11 @@ void Camera::OnResize(uint32_t width, uint32_t height)
 void Camera::RecalculateProjection()
 {
 	m_Projection = glm::perspectiveFov(
-		glm::radians(m_VerticalFOV),
+		glm::radians(VerticalFOV),
 		(float)m_ViewportWidth,
 		(float)m_ViewportHeight,
-		m_NearPlane,
-		m_FarPlane);
+		NearPlane,
+		FarPlane);
 	m_InverseProjection = glm::inverse(m_Projection);
 }
 

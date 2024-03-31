@@ -11,3 +11,4 @@ build/
 
 # Exclude
 !vendor/bin
+/.vscode/settings.json

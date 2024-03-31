@@ -2,11 +2,10 @@
  
 #include <memory>
 
-#include <cuda_runtime.h>
-#include <device_launch_parameters.h>
-
 #include <glm/glm.hpp>
 #include <Walnut/Image.h>
+
+#include "Hardware.hpp"
 
 #include "Camera.h"
 #include "Ray.h"
@@ -21,7 +20,7 @@ public:
 	};
 
 	void OnResize(uint32_t width, uint32_t height);
-	void Render(const Scene& scene, const Camera& camera);
+	void Render(const Scene* scene, const Camera* camera);
 
 	void ResetFrameIndex() { m_FrameIndex = 1; }
 
@@ -42,7 +41,3 @@ private:
 	uint32_t m_FrameIndex = 1;
 	float m_AspectRatio = 1;
 };
-
-__global__ void RayGen(uint32_t* resultingImage, glm::vec4* imageAccumulator, const int frameIndex, const Ray* rays,
-					   const uint32_t imageWidth, const uint32_t imageHeight, 
-					   const Shapes::Sphere* shapes, const size_t shapesCount);

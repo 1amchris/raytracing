@@ -3,9 +3,12 @@
 #include <memory>
 #include <glm/glm.hpp>
 
+#include "Hardware.hpp"
+
 namespace Utils
 {
-	__host__ __device__ static uint32_t ConvertToRGBA(const glm::vec4& color)
+	__TARGET_ALL__
+	static uint32_t ConvertToRGBA(const glm::vec4& color)
 	{
 		uint8_t r = (uint8_t)(color.r * 255.0f);
 		uint8_t g = (uint8_t)(color.g * 255.0f);

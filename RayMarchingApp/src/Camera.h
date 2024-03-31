@@ -10,6 +10,7 @@ public:
 
 	bool OnUpdate(float timeStep); /* timeStep in ms */
 	void OnResize(uint32_t width, uint32_t height);
+	void OnProjectionChange();
 
 	const glm::mat4& GetProjection() const { return m_Projection; }
 	const glm::mat4& GetInverseProjection() const { return m_InverseProjection; }
@@ -24,6 +25,11 @@ public:
 	float GetMovementSpeed() const { return 4.0f; }
 	float GetRotationSpeed() const { return 0.8f; }
 
+public:
+	float VerticalFOV = 90.0f;
+	float NearPlane = 0.1f;
+	float FarPlane = 100.0f;
+
 private:
 	void RecalculateProjection();
 	void RecalculateView();
@@ -35,11 +41,7 @@ private:
 	glm::mat4 m_View{ 1.0f };
 	glm::mat4 m_InverseView{ 1.0f };
 
-	float m_VerticalFOV = 45.0f;
-	float m_NearPlane = 0.1f;
-	float m_FarPlane = 100.0f;
-
-	glm::vec3 m_Position{ 0.1f, 0.1f, 10.0f };
+	glm::vec3 m_Position{ 0.2f, 0.2f, 10.0f };
 	glm::vec3 m_Direction = { 0.0f, 0.0f, -1.0f };
 
 	std::vector<glm::vec3> m_RayDirections;

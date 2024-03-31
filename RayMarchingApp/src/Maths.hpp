@@ -4,6 +4,9 @@
 #include <memory>
 #include <iostream>
 
+#include "Hardware.hpp"
+
+
 namespace Utils 
 {
     void SwapMemory(void* address1, void* address2, size_t size) 

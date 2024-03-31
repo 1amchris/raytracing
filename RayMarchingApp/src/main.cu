@@ -1,5 +1,6 @@
 #include <string>
 #include <limits>
+#include <memory>
 #include <glm/gtc/type_ptr.hpp>
 
 #include <Walnut/Application.h>
@@ -11,35 +12,86 @@
 #include "Camera.h"
 #include "Renderer.h"
 #include "Sphere.h"
+#include "Material.h"
 
 
 class DefaultLayer : public Walnut::Layer
 {
 public:
 	DefaultLayer():
-		m_ActiveCamera(45.0f, 0.1f, 100.0f),
 		m_ViewportWidth(0),
 		m_ViewportHeight(0)
 	{
-		{ /* Sphere 1 */
-			Shapes::Sphere* sphere = new Shapes::Sphere();
-			sphere->Radius = 1.0f;
-			sphere->Position = glm::vec3{ 0.0f, 0.0f, 2.0f };
-			m_ActiveScene.Shapes.push_back(sphere);
+
+		m_Renderer->GetSettings().Accumulate = false;
+
+		{ /* Material 1 */
+			Material* material = new Material();
+			material->Albedo = { 0.161f, 0.565f, 0.710f }; // Neptune average color
+			material->Roughness = 0.4f;
+			m_ActiveScene->Materials.push_back(material);
+		}
+		{ /* Material 2 */
+			Material* material = new Material();
+			material->Albedo = { 0.1f, 0.2f, 0.8f };
+			material->Roughness = 0.1f;
+			m_ActiveScene->Materials.push_back(material);
+		}
+		{ /* Material 3 */
+			Material* material = new Material();
+			material->Albedo = { 1.0f, 0.25f, 1.0f };
+			material->Roughness = 0.2f;
+			m_ActiveScene->Materials.push_back(material);
 		}
 
-		m_ActiveScene.ResetShapeIndices();
+		{ /* Sphere 1 */
+			Shapes::Sphere* sphere = new Shapes::Sphere();
+			sphere->Radius = 1.25f;
+			sphere->Position = glm::vec3{ 0.0f, 0.0f, 0.0f };
+			sphere->MaterialIndex = 0;
+			m_ActiveScene->Shapes.push_back(sphere);
+		}
+		{ /* Sphere 2 */
+			Shapes::Sphere* sphere = new Shapes::Sphere();
+			sphere->Radius = 1.25f;
+			sphere->Position = glm::vec3{ 1.85f, 1.5f, 0.0f };
+			sphere->MaterialIndex = 1;
+			m_ActiveScene->Shapes.push_back(sphere);
+		}
+		{ /* Sphere 3 */
+			Shapes::Sphere* sphere = new Shapes::Sphere();
+			sphere->Radius = 1.25f;
+			sphere->Position = glm::vec3{ 4.0f, 1.0f, 1.0f };
+			sphere->MaterialIndex = 0;
+			m_ActiveScene->Shapes.push_back(sphere);
+		}
+		{ /* Sphere 4 */
+			Shapes::Sphere* sphere = new Shapes::Sphere();
+			sphere->Radius = 1.25f;
+			sphere->Position = glm::vec3{ -2.0f, 0.0f, -1.0f };
+			sphere->MaterialIndex = 1;
+			m_ActiveScene->Shapes.push_back(sphere);
+		}
+		{ /* Sphere 5 */
+			Shapes::Sphere* sphere = new Shapes::Sphere();
+			sphere->Radius = 1.25f;
+			sphere->Position = glm::vec3{ 2.0f, 0.0f, 2.0f };
+			sphere->MaterialIndex = 0;
+			m_ActiveScene->Shapes.push_back(sphere);
+		}
+
+		m_ActiveScene->ResetIndices();
 	}
 
 	~DefaultLayer() {
-		m_ActiveScene.Dispose();
+		m_ActiveScene->Dispose();
 	}
 
 	virtual void OnUpdate(float timeStep) override 
 	{
-		if (m_ActiveCamera.OnUpdate(timeStep))
+		if (m_ActiveCamera->OnUpdate(timeStep))
 		{
-			m_Renderer.ResetFrameIndex();
+			m_Renderer->ResetFrameIndex();
 			m_ShouldRedraw = false;
 		}
 	}
@@ -52,7 +104,7 @@ public:
 
 		if (m_ShouldRedraw)
 		{
-			m_Renderer.ResetFrameIndex();
+			m_Renderer->ResetFrameIndex();
 			m_ShouldRedraw = false;
 		}
 
@@ -63,10 +115,10 @@ public:
 	{
 		Walnut::Timer timer;
 
-		m_Renderer.OnResize(m_ViewportWidth, m_ViewportHeight);
-		m_ActiveCamera.OnResize(m_ViewportWidth, m_ViewportHeight);
+		m_Renderer->OnResize(m_ViewportWidth, m_ViewportHeight);
+		m_ActiveCamera->OnResize(m_ViewportWidth, m_ViewportHeight);
 		
-		m_Renderer.Render(m_ActiveScene, m_ActiveCamera);
+		m_Renderer->Render(m_ActiveScene.get(), m_ActiveCamera.get());
 
 		m_LastRenderTime = timer.ElapsedMillis();
 	}
@@ -74,23 +126,46 @@ public:
 private:
 	void RenderConsole()
 	{
+		bool recalculateProjection = false;
+		ImVec4 ImGui_Header1 = ImVec4(0, 1, 1, 1);
+
 		ImGui::Begin("Console");
-		ImGui::Text("Last Render: %.3fms", m_LastRenderTime);
+		
+		{
+			ImGui::TextColored(ImGui_Header1, "Render Settings");
+			
+			ImGui::Text("Last Render: %.3fms", m_LastRenderTime);
+			ImGui::Checkbox("Accumulate", &m_Renderer->GetSettings().Accumulate);
+		}
+
 		ImGui::Separator();
-		ImGui::Checkbox("Accumulate", &m_Renderer.GetSettings().Accumulate);
-		m_ShouldRedraw |= ImGui::Button("Redraw Scene");
+
+		{
+			ImGui::TextColored(ImGui_Header1, "Camera Settings");
+		
+			recalculateProjection |= ImGui::DragFloat("FOV", &m_ActiveCamera->VerticalFOV, 0.1f, 0.0f, 179.9f);
+			recalculateProjection |= ImGui::DragFloat("Near Plane", &m_ActiveCamera->NearPlane, 0.0f, m_ActiveCamera->FarPlane);
+			recalculateProjection |= ImGui::DragFloat("Far Plane", &m_ActiveCamera->FarPlane, m_ActiveCamera->NearPlane, std::numeric_limits<float>::max());
+		}
+
 		ImGui::End();
+
+		if (recalculateProjection)
+		{
+			m_ShouldRedraw |= true;
+			m_ActiveCamera->OnProjectionChange();
+		}
 	}
 
 	void RenderShapeEditor() 
 	{
 		ImGui::Begin("Spheres Editor");
 
-		for (Shapes::Sphere* shape : m_ActiveScene.Shapes)
+		for (Shapes::Sphere* shape : m_ActiveScene->Shapes)
 		{
 			ImGui::PushID(shape->ShapeIndex);
 			
-			ImGui::Text("Sphere %d", shape->ShapeIndex);
+			ImGui::Text("Sphere %d", shape->ShapeIndex + 1);
 			m_ShouldRedraw |= ImGui::DragFloat3("Position", glm::value_ptr(shape->Position), 0.1f);
 			m_ShouldRedraw |= ImGui::DragFloat("Radius", &shape->Radius, 0.1f, 0.0f, std::numeric_limits<float>::max());
 
@@ -109,7 +184,7 @@ private:
 		m_ViewportWidth = (int)ImGui::GetContentRegionAvail().x;
 		m_ViewportHeight = (int)ImGui::GetContentRegionAvail().y;
 
-		auto image = m_Renderer.GetFinalImage();
+		auto image = m_Renderer->GetFinalImage();
 		if (image)
 			ImGui::Image(
 				(ImTextureID)image->GetDescriptorSet(),
@@ -123,13 +198,13 @@ private:
 
 	void OnSceneUpdate()
 	{
-		m_Renderer.ResetFrameIndex();
+		m_Renderer->ResetFrameIndex();
 	}
 
 private:
-	Renderer m_Renderer;
-	Camera m_ActiveCamera;
-	Scene m_ActiveScene;
+	std::shared_ptr<Camera> m_ActiveCamera = std::make_shared<Camera>(90.0f, 0.1f, 100.0f);
+	std::shared_ptr<Scene> m_ActiveScene = std::make_shared<Scene>();
+	std::shared_ptr<Renderer> m_Renderer = std::make_shared<Renderer>();
 	
 	uint32_t m_ViewportHeight, m_ViewportWidth;
 	float m_LastRenderTime = 0.0f;
