@@ -16,4 +16,10 @@ namespace Utils
 		uint8_t a = (uint8_t)(color.a * 255.0f);
 		return (a << 24) | (b << 16) | (g << 8) | r;
 	}
+
+	__TARGET_ALL__
+	static glm::vec3 LinearToGammaTransform(const glm::vec3& color)
+	{
+		return glm::sqrt(color);
+	}
 }

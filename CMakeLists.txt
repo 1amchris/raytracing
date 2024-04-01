@@ -3,6 +3,7 @@ project(RayTracing)
 
 set(APP_NAME RayMarchingApp)
 
+find_package(CUDAToolkit REQUIRED)
 find_package(Vulkan REQUIRED)
 
 set(GLFW_BUILD_EXAMPLES OFF CACHE INTERNAL "")
@@ -36,6 +37,7 @@ target_link_libraries(${APP_NAME} PRIVATE
     glfw
     dwmapi
     imgui
+    CUDA::cudart CUDA::curand
 )
 
 set_target_properties(glfw update_mappings PROPERTIES FOLDER Vendor/GLFW)

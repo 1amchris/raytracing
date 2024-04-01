@@ -22,9 +22,6 @@ public:
 		m_ViewportWidth(0),
 		m_ViewportHeight(0)
 	{
-
-		m_Renderer->GetSettings().Accumulate = false;
-
 		{ /* Material 1 */
 			Material* material = new Material();
 			material->Albedo = { 0.161f, 0.565f, 0.710f }; // Neptune average color
@@ -34,13 +31,20 @@ public:
 		{ /* Material 2 */
 			Material* material = new Material();
 			material->Albedo = { 0.1f, 0.2f, 0.8f };
-			material->Roughness = 0.1f;
+			material->Roughness = 0.01f;
 			m_ActiveScene->Materials.push_back(material);
 		}
 		{ /* Material 3 */
 			Material* material = new Material();
-			material->Albedo = { 1.0f, 0.25f, 1.0f };
+			material->Albedo = { 8.0f, 0.55f, 0.1f };
 			material->Roughness = 0.2f;
+			m_ActiveScene->Materials.push_back(material);
+		}
+		{ /* Material 4 */
+			Material* material = new Material();
+			material->Albedo = { 0.95f, 0.975f, 1.0f };
+			material->RefractiveIndex = 1.458f;
+			material->Roughness = 0.1f;
 			m_ActiveScene->Materials.push_back(material);
 		}
 
@@ -53,9 +57,9 @@ public:
 		}
 		{ /* Sphere 2 */
 			Shapes::Sphere* sphere = new Shapes::Sphere();
-			sphere->Radius = 1.25f;
-			sphere->Position = glm::vec3{ 1.85f, 1.5f, 0.0f };
-			sphere->MaterialIndex = 1;
+			sphere->Radius = 1.1f;
+			sphere->Position = glm::vec3{ 1.85f, 2.3f, 0.0f };
+			sphere->MaterialIndex = 3;
 			m_ActiveScene->Shapes.push_back(sphere);
 		}
 		{ /* Sphere 3 */
@@ -68,7 +72,7 @@ public:
 		{ /* Sphere 4 */
 			Shapes::Sphere* sphere = new Shapes::Sphere();
 			sphere->Radius = 1.25f;
-			sphere->Position = glm::vec3{ -2.0f, 0.0f, -1.0f };
+			sphere->Position = glm::vec3{ 1.9f, 0.0f, -1.0f };
 			sphere->MaterialIndex = 1;
 			m_ActiveScene->Shapes.push_back(sphere);
 		}
@@ -76,7 +80,36 @@ public:
 			Shapes::Sphere* sphere = new Shapes::Sphere();
 			sphere->Radius = 1.25f;
 			sphere->Position = glm::vec3{ 2.0f, 0.0f, 2.0f };
+			sphere->MaterialIndex = 2;
+			m_ActiveScene->Shapes.push_back(sphere);
+		}
+
+		{ /* Sphere 6 */
+			Shapes::Sphere* sphere = new Shapes::Sphere();
+			sphere->Radius = 1.25f;
+			sphere->Position = glm::vec3{ 0.0f, 4.0f, 0.0f };
 			sphere->MaterialIndex = 0;
+			m_ActiveScene->Shapes.push_back(sphere);
+		}
+		{ /* Sphere 7 */
+			Shapes::Sphere* sphere = new Shapes::Sphere();
+			sphere->Radius = 1.25f;
+			sphere->Position = glm::vec3{ 4.0f, 5.0f, 1.0f };
+			sphere->MaterialIndex = 0;
+			m_ActiveScene->Shapes.push_back(sphere);
+		}
+		{ /* Sphere 8 */
+			Shapes::Sphere* sphere = new Shapes::Sphere();
+			sphere->Radius = 1.25f;
+			sphere->Position = glm::vec3{ 1.9f, 4.0f, -1.0f };
+			sphere->MaterialIndex = 1;
+			m_ActiveScene->Shapes.push_back(sphere);
+		}
+		{ /* Sphere 9 */
+			Shapes::Sphere* sphere = new Shapes::Sphere();
+			sphere->Radius = 1.25f;
+			sphere->Position = glm::vec3{ 2.0f, 4.0f, 2.0f };
+			sphere->MaterialIndex = 2;
 			m_ActiveScene->Shapes.push_back(sphere);
 		}
 

@@ -6,9 +6,14 @@
 #include <optional>
 #include <functional>
 
+#define _USE_MATH_DEFINES
+#include <cmath>
+
 #include <Walnut/Random.h>
 
 #include <cuda/std/limits>
+#include <curand.h>
+#include <curand_kernel.h>
 
 #include "Random.hpp"
 #include "Colors.hpp"
@@ -16,8 +21,116 @@
 #include "Hardware.hpp"
 
 
+#define MAX_STEP_COUNT 250
+#define MAX_BOUNCE_COUNT 10
+#define MIN_DISTANCE_TO_COLLIDE 1e-3f
+
+class ClosestEntity {
+public:
+	float Distance;
+	int ShapeIndex;
+};
+
+class RayIntersectionPayload {
+public:
+	float IntersectionDistance;
+	glm::vec3 IntersectionPosition;
+	glm::vec3 SurfaceNormal;
+	int ShapeIndex;
+	int StepCount;
+	bool InsideShape;
+};
+
+__TARGET_GPU__ 
+static ClosestEntity FindClosestShape(
+	const glm::vec3 point, const Interval<float>& interval, 
+	const Shapes::Sphere* shapes, const size_t shapesCount)
+{
+	// TODO: I should probably handle the case where the 
+	// closest is actually closer than the given interval.
+	ClosestEntity result{};
+	result.Distance = interval.Max;
+	result.ShapeIndex = -1;
+
+	for (int shapeIndex = 0; shapeIndex < shapesCount; ++shapeIndex)
+	{
+		Shapes::Sphere shape = shapes[shapeIndex];
+		float distanceToShape = glm::length(point - shape.Position) - shape.Radius;
+
+		if (distanceToShape < result.Distance)
+		{
+			result.ShapeIndex = shapeIndex;
+			result.Distance = distanceToShape;
+		}
+	}
+
+	return result;
+}
+
+__TARGET_GPU__ 
+static RayIntersectionPayload MarchRay(
+	const glm::vec3& sourcePosition, const Ray& ray, const Interval<float>& interval, 
+	const Shapes::Sphere* shapes, const size_t shapesCount) 
+{
+	float distanceMarched = 0.0f;
+	int step = 0;
+	for (;step < MAX_STEP_COUNT; ++step)
+	{
+		/* I need to handle the "marching" differently when I'm inside of an object */
+
+		glm::vec3 point = ray.Origin + ray.Direction * distanceMarched;
+		if (interval.Max <= glm::distance(sourcePosition, point))
+			break;
+
+		ClosestEntity closestShape = FindClosestShape(point, interval, shapes, shapesCount);
+
+		// We're adding the absolute values, because we also want to keep 
+		// moving when inside of an object (SDF will return a negative Distance)
+		distanceMarched += glm::abs(closestShape.Distance);
+
+		if (closestShape.Distance < MIN_DISTANCE_TO_COLLIDE)
+		{
+			RayIntersectionPayload payload{};
+			payload.IntersectionDistance = distanceMarched;
+			payload.IntersectionPosition = ray.Origin + ray.Direction * distanceMarched;
+			payload.StepCount = step;
+			payload.ShapeIndex = closestShape.ShapeIndex;
+			payload.SurfaceNormal = glm::normalize(payload.IntersectionPosition - shapes[closestShape.ShapeIndex].Position);
+			payload.InsideShape = closestShape.Distance < -MIN_DISTANCE_TO_COLLIDE;
+			return payload;
+		}
+	}
+
+	RayIntersectionPayload payload{};
+	payload.StepCount = step;
+	payload.ShapeIndex = -1;
+	return payload;
+}
+
+__TARGET_GPU__ glm::vec3 RandomPointInUnitSphere(curandState* state) {
+	float u = curand_uniform(state); // Random value for radius
+	float v = curand_uniform(state); // Random value for azimuthal angle
+	float w = curand_uniform(state); // Random value for polar angle
+
+	float radius = cbrt(u);
+	float phi = 2.0f * M_PI * v; // Azimuthal angle
+	float theta = acos(2.0f * w - 1.0f); // Polar angle
+
+	return glm::vec3{ sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta) };
+}
+
+__TARGET_GPU__ 
+static float Reflectance(float cosine, float refractionIndicesRatio) 
+{
+	// Schlick's approximation
+	auto r0 = (1.0f - refractionIndicesRatio) / (1.0f + refractionIndicesRatio);
+	r0 *= r0;
+	return r0 + (1.0f - r0) * glm::pow((1.0f - cosine), 5.0f);
+}
+
 __global__
-void RayGen(uint32_t* resultingImage, glm::vec4* imageAccumulator, int frameIndex, 
+static void RayGen(
+	curandState* globalState, uint32_t* resultingImage, glm::vec4* imageAccumulator, int frameIndex,
 	const Ray* rays, const uint32_t imageWidth, const uint32_t imageHeight, const Interval<float> interval,
 	const Shapes::Sphere* shapes, const size_t shapesCount,
 	const Material* materials, const size_t materialsCount)
@@ -27,50 +140,65 @@ void RayGen(uint32_t* resultingImage, glm::vec4* imageAccumulator, int frameInde
 	if (x >= imageWidth || y >= imageHeight) return;
 
 	const uint32_t inlineCoord = x + y * imageWidth;
+	curandState localState = globalState[inlineCoord];
+	curand_init(inlineCoord * frameIndex, inlineCoord, 0, &localState);
+
 	Ray ray = rays[inlineCoord];
-
-	float distanceMarched = 0.0f;
-	glm::vec3 light{ 1.0f };
-	int steps;
-	for (steps = 0; steps < 80; ++steps)
+	
+	glm::vec3 light = glm::mix({ 0.5f, 0.7f, 1.0f }, glm::vec3{ 1.0f }, 0.5f * (ray.Direction.y + 1.0f));
+	
+	glm::vec3 sourcePosition = ray.Origin;
+	for (int bounceCount = 0; bounceCount < MAX_BOUNCE_COUNT; ++bounceCount)
 	{
-		glm::vec3 position = ray.Origin + ray.Direction * distanceMarched;
+		RayIntersectionPayload payload = MarchRay(sourcePosition, ray, interval, shapes, shapesCount);
 
-		float distanceToClosestShape = interval.Max;
-		int indexOfClosestShape = -1;
-		for (int shapeIndex = 0; shapeIndex < shapesCount; ++shapeIndex)
+		if (payload.ShapeIndex == -1)
+			break;
+
+		const Shapes::Sphere shape = shapes[payload.ShapeIndex];
+		const Material material = materials[shape.MaterialIndex];
+
+		/* Material is refractive */
+		if (material.RefractiveIndex >= 0.0f)
 		{
-			Shapes::Sphere shape = shapes[shapeIndex];
-			float distanceToShape = glm::length(position - shape.Position) - shape.Radius;
+			// The following might give weird results when two objects collide/intersect, but it'll do for now.
+			const float refractionIndicesRatio = payload.InsideShape
+				? material.RefractiveIndex
+				: (/* Air */ 1.0f / material.RefractiveIndex);
+		
+			glm::vec3 unitDirection = glm::normalize(ray.Direction);
+			float cosTheta = glm::min(glm::dot(-unitDirection, payload.SurfaceNormal), 1.0f);
 
-			if (distanceToShape < distanceToClosestShape)
+			if (Reflectance(cosTheta, refractionIndicesRatio) <= curand_uniform(&localState))
 			{
-				indexOfClosestShape = shapeIndex;
-				distanceToClosestShape = distanceToShape;
+				float sinTheta = glm::sqrt(1.0f - cosTheta * cosTheta);
+				bool canRefract = refractionIndicesRatio * sinTheta <= 1.0f;
+
+				if (canRefract) {
+					ray.Origin = payload.IntersectionPosition - payload.SurfaceNormal * MIN_DISTANCE_TO_COLLIDE * 10.0f;
+					glm::vec3 refractedRayDirection = glm::refract(unitDirection, payload.SurfaceNormal, refractionIndicesRatio);
+					ray.Direction = glm::normalize(refractedRayDirection + material.Roughness * RandomPointInUnitSphere(&localState));
+					continue;
+				}
 			}
 		}
-
-		distanceMarched += distanceToClosestShape;
-
-		if (interval.Max <= distanceMarched) break;
-		if (distanceToClosestShape < 1e-3f) {
-			if (indexOfClosestShape > -1) {
-				Shapes::Sphere closestShape = shapes[indexOfClosestShape];
-				Material shapeMaterial = materials[closestShape.MaterialIndex];
-				light *= shapeMaterial.Albedo;
-			}
-
-			break;
+		
+		/* Material is not transparent, or total reflection */
+		{
+			light *= material.Albedo;
+			ray.Origin = payload.IntersectionPosition + payload.SurfaceNormal * MIN_DISTANCE_TO_COLLIDE * 10.0f;
+			glm::vec3 reflectedRayDirection = glm::reflect(ray.Direction, payload.SurfaceNormal);
+			ray.Direction = glm::normalize(reflectedRayDirection + material.Roughness * RandomPointInUnitSphere(&localState));
+			continue;
 		}
 	}
 
-	light = glm::vec3{ (float)steps / 50.0f };
-  
-	glm::vec4 color{ light, 1.0f };
+	glm::vec4 color{ Utils::LinearToGammaTransform(light), 1.0f };
 	imageAccumulator[inlineCoord] += color;
 	glm::vec4 averageColor = imageAccumulator[inlineCoord] / (float)frameIndex;
 	averageColor = glm::clamp(averageColor, { 0.0f }, { 1.0f });
 	resultingImage[inlineCoord] = Utils::ConvertToRGBA(averageColor);
+	globalState[inlineCoord] = localState;
 }
 
 Renderer::~Renderer() 
@@ -111,9 +239,10 @@ void Renderer::Render(const Scene* scene, const Camera* camera)
 	if (m_FrameIndex == 1)
 		cudaMemset(m_AccumulationData, 0, imageSize * sizeof(glm::vec4));
 
+	// I should try to parallellize this. It's the most of my render time.
 	uint32_t* p_resultingImage;
 	cudaMallocManaged(&p_resultingImage, imageSize * sizeof(uint32_t));
-
+	
 	std::vector<Ray> rays;
 	std::transform(m_ActiveCamera->GetRayDirections().begin(), m_ActiveCamera->GetRayDirections().end(), std::back_inserter(rays),
 		[this](const glm::vec3 rayDirection) { return Ray{ m_ActiveCamera->GetPosition(), rayDirection }; });
@@ -137,19 +266,24 @@ void Renderer::Render(const Scene* scene, const Camera* camera)
 
 	Interval<float> renderInterval{ m_ActiveCamera->NearPlane, m_ActiveCamera->FarPlane };
 
-	dim3 blockDim(16, 16);
+	dim3 blockDim(32, 32);
 	dim3 gridDim((imageWidth + blockDim.x - 1) / blockDim.x, (imageHeight + blockDim.y - 1) / blockDim.y);
 
+	curandState* d_states;
+	cudaMalloc(&d_states, imageSize * sizeof(curandState));
+
 	RayGen <<<gridDim, blockDim>>> (
-		p_resultingImage, m_AccumulationData, m_FrameIndex,
+		d_states, p_resultingImage, m_AccumulationData, m_FrameIndex,
 		p_rays, imageWidth, imageHeight, renderInterval, 
 		p_shapes, shapes.size(), 
 		p_materials, materials.size()
 	);
 	cudaDeviceSynchronize();
 
+
 	m_FinalImage->SetData(p_resultingImage);
 
+	cudaFree(d_states);
 	cudaFree(p_resultingImage);
 	cudaFree(p_rays);
 	cudaFree(p_shapes);

@@ -21,6 +21,7 @@ public:
 	const glm::vec3& GetDirection() const { return m_Direction; }
 
 	const std::vector<glm::vec3>& GetRayDirections() const { return m_RayDirections; }
+	const std::vector<std::tuple<glm::vec3, glm::vec3>>& GetRayDifferentials() const { return m_RayDifferentials; }
 
 	float GetMovementSpeed() const { return 4.0f; }
 	float GetRotationSpeed() const { return 0.8f; }
@@ -36,6 +37,8 @@ private:
 	void RecalculateRayDirections();
 
 private:
+	const glm::vec3 m_UpDirection { 0.0f, 1.0f, 0.0f };
+
 	glm::mat4 m_Projection{ 1.0f };
 	glm::mat4 m_InverseProjection{ 1.0f };
 	glm::mat4 m_View{ 1.0f };
@@ -45,6 +48,8 @@ private:
 	glm::vec3 m_Direction = { 0.0f, 0.0f, -1.0f };
 
 	std::vector<glm::vec3> m_RayDirections;
+	std::vector<std::tuple<glm::vec3, glm::vec3>> m_RayDifferentials;
+	std::vector<glm::vec3> m_RayDirectionDvs;
 
 	glm::vec2 m_LastMousePosition{ 0.0f, 0.0f };
 

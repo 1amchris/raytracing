@@ -35,6 +35,34 @@ I've found this alternative rendering method which doesn't use triangles or any 
 
 For now, I've decided to create a bloom effect based on close a ray is to an object. The closer it is to an object, the brighter it shines.
 
-![image.png](images/raymarching/contours.png)
+![blooming-contours](images/raymarching/contours.png)
 
-I'm nwo going to move onto material interactions and proper coloring. Maybe I can get a couple of ray bounces (similar to what I was previously doing using path tracing).
+---
+
+###  Reflections
+
+I've now implemented ray bouncing (perfect, metal-like surfaces). Much like I did it in ray-casting, all that was needed was a loop for as long as I had intersected with something inside of the collision interval, or hadn't yet bounced an arbitrary amount of times.
+
+![reflections](images/raymarching/reflections.png)
+
+---
+
+### Anti aliasing or path tracing?
+
+I then included anti aliasing. What an absolute waste of time that was. It's only when I was done implementing the whole thing that I realized that I could get the same result using path tracing (which is already implemented) and some variation in the direction of the initial casted ray every frame.
+
+Roughness is also making a come-back. it's been implemented in a pretty simple way, where I add a random value within a unit sphere to the normal of the surface the previous ray intersected with. The rougher the surface, the more scattered it is.
+
+![path-tracing](images/raymarching/path-tracing.png)
+
+---
+
+### Glass & other dielectrics
+
+I have now been working on including glass (or any other dielectric material). As many people said it online, reflections can be hard! You really gotta make sure everything works one step at a time. I still don't think what I have right now is accurate: the image seen through the dielectric balls are not inverted. I guess I'll have to investigate further.
+
+> Remark: Up to this point, I've never had to deal with transparency, so some bugs with my current ray marcher may have slipped through causing the issues I'm noticing.
+
+![glass-balls](images/raymarching/refractions.png)
+
+---
