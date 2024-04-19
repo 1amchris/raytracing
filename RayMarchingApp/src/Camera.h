@@ -44,7 +44,7 @@ private:
 	glm::mat4 m_View{ 1.0f };
 	glm::mat4 m_InverseView{ 1.0f };
 
-	glm::vec3 m_Position{ 0.2f, 0.2f, 10.0f };
+	glm::vec3 m_Position{ 0.0f, 1.0f, 4.0f };
 	glm::vec3 m_Direction = { 0.0f, 0.0f, -1.0f };
 
 	std::vector<glm::vec3> m_RayDirections;

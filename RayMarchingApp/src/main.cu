@@ -36,82 +36,103 @@ public:
 		}
 		{ /* Material 3 */
 			Material* material = new Material();
-			material->Albedo = { 8.0f, 0.55f, 0.1f };
+			material->Albedo = { 1.0f, 0.55f, 0.1f };
 			material->Roughness = 0.2f;
 			m_ActiveScene->Materials.push_back(material);
 		}
 		{ /* Material 4 */
 			Material* material = new Material();
-			material->Albedo = { 0.95f, 0.975f, 1.0f };
-			material->RefractiveIndex = 1.458f;
+			material->Albedo = { 0.975f, 0.99f, 1.0f };
+			material->RefractivityIndex = 1.458f;
+			material->Opacity = 0.01f;
+			//material->Roughness = 0.1f;
+			m_ActiveScene->Materials.push_back(material);
+		}
+		{ /* Material 5 */
+			Material* material = new Material();
+			material->Albedo = { 1.0f, 0.0f, 0.0f };
 			material->Roughness = 0.1f;
 			m_ActiveScene->Materials.push_back(material);
 		}
 
 		{ /* Sphere 1 */
 			Shapes::Sphere* sphere = new Shapes::Sphere();
-			sphere->Radius = 1.25f;
-			sphere->Position = glm::vec3{ 0.0f, 0.0f, 0.0f };
+			sphere->Radius = 1000.0f;
+			sphere->Position = glm::vec3{ 0.0f, -1000.0f, 0.0f };
 			sphere->MaterialIndex = 0;
 			m_ActiveScene->Shapes.push_back(sphere);
 		}
 		{ /* Sphere 2 */
 			Shapes::Sphere* sphere = new Shapes::Sphere();
-			sphere->Radius = 1.1f;
-			sphere->Position = glm::vec3{ 1.85f, 2.3f, 0.0f };
+			sphere->Radius = 1.0f;
+			sphere->Position = glm::vec3{ 0.0f, 1.0f, 0.0f };
 			sphere->MaterialIndex = 3;
+			m_ActiveScene->Shapes.push_back(sphere);
+		}
+		{ /* Sphere 2.1 */
+			Shapes::Sphere* sphere = new Shapes::Sphere();
+			sphere->Radius = 1.0f;
+			sphere->Position = glm::vec3{ -2.0f, 1.0f, 0.0f };
+			sphere->MaterialIndex = 2;
+			m_ActiveScene->Shapes.push_back(sphere);
+		}
+		{ /* Sphere 2.2 */
+			Shapes::Sphere* sphere = new Shapes::Sphere();
+			sphere->Radius = 1.0f;
+			sphere->Position = glm::vec3{ 2.0f, 1.0f, 0.0f };
+			sphere->MaterialIndex = 1;
 			m_ActiveScene->Shapes.push_back(sphere);
 		}
 		{ /* Sphere 3 */
 			Shapes::Sphere* sphere = new Shapes::Sphere();
-			sphere->Radius = 1.25f;
-			sphere->Position = glm::vec3{ 4.0f, 1.0f, 1.0f };
-			sphere->MaterialIndex = 0;
+			sphere->Radius = 1.0f;
+			sphere->Position = glm::vec3{ 0.0f, 1.0f, -5.0f };
+			sphere->MaterialIndex = 4;
 			m_ActiveScene->Shapes.push_back(sphere);
 		}
-		{ /* Sphere 4 */
-			Shapes::Sphere* sphere = new Shapes::Sphere();
-			sphere->Radius = 1.25f;
-			sphere->Position = glm::vec3{ 1.9f, 0.0f, -1.0f };
-			sphere->MaterialIndex = 1;
-			m_ActiveScene->Shapes.push_back(sphere);
-		}
-		{ /* Sphere 5 */
-			Shapes::Sphere* sphere = new Shapes::Sphere();
-			sphere->Radius = 1.25f;
-			sphere->Position = glm::vec3{ 2.0f, 0.0f, 2.0f };
-			sphere->MaterialIndex = 2;
-			m_ActiveScene->Shapes.push_back(sphere);
-		}
+		//{ /* Sphere 4 */
+		//	Shapes::Sphere* sphere = new Shapes::Sphere();
+		//	sphere->Radius = 1.25f;
+		//	sphere->Position = glm::vec3{ 1.9f, 0.0f, -1.0f };
+		//	sphere->MaterialIndex = 1;
+		//	m_ActiveScene->Shapes.push_back(sphere);
+		//}
+		//{ /* Sphere 5 */
+		//	Shapes::Sphere* sphere = new Shapes::Sphere();
+		//	sphere->Radius = 1.25f;
+		//	sphere->Position = glm::vec3{ 2.0f, 0.0f, 2.0f };
+		//	sphere->MaterialIndex = 2;
+		//	m_ActiveScene->Shapes.push_back(sphere);
+		//}
 
-		{ /* Sphere 6 */
-			Shapes::Sphere* sphere = new Shapes::Sphere();
-			sphere->Radius = 1.25f;
-			sphere->Position = glm::vec3{ 0.0f, 4.0f, 0.0f };
-			sphere->MaterialIndex = 0;
-			m_ActiveScene->Shapes.push_back(sphere);
-		}
-		{ /* Sphere 7 */
-			Shapes::Sphere* sphere = new Shapes::Sphere();
-			sphere->Radius = 1.25f;
-			sphere->Position = glm::vec3{ 4.0f, 5.0f, 1.0f };
-			sphere->MaterialIndex = 0;
-			m_ActiveScene->Shapes.push_back(sphere);
-		}
-		{ /* Sphere 8 */
-			Shapes::Sphere* sphere = new Shapes::Sphere();
-			sphere->Radius = 1.25f;
-			sphere->Position = glm::vec3{ 1.9f, 4.0f, -1.0f };
-			sphere->MaterialIndex = 1;
-			m_ActiveScene->Shapes.push_back(sphere);
-		}
-		{ /* Sphere 9 */
-			Shapes::Sphere* sphere = new Shapes::Sphere();
-			sphere->Radius = 1.25f;
-			sphere->Position = glm::vec3{ 2.0f, 4.0f, 2.0f };
-			sphere->MaterialIndex = 2;
-			m_ActiveScene->Shapes.push_back(sphere);
-		}
+		//{ /* Sphere 6 */
+		//	Shapes::Sphere* sphere = new Shapes::Sphere();
+		//	sphere->Radius = 1.25f;
+		//	sphere->Position = glm::vec3{ 0.0f, 4.0f, 0.0f };
+		//	sphere->MaterialIndex = 0;
+		//	m_ActiveScene->Shapes.push_back(sphere);
+		//}
+		//{ /* Sphere 7 */
+		//	Shapes::Sphere* sphere = new Shapes::Sphere();
+		//	sphere->Radius = 1.25f;
+		//	sphere->Position = glm::vec3{ 4.0f, 5.0f, 1.0f };
+		//	sphere->MaterialIndex = 0;
+		//	m_ActiveScene->Shapes.push_back(sphere);
+		//}
+		//{ /* Sphere 8 */
+		//	Shapes::Sphere* sphere = new Shapes::Sphere();
+		//	sphere->Radius = 1.25f;
+		//	sphere->Position = glm::vec3{ 1.9f, 4.0f, -1.0f };
+		//	sphere->MaterialIndex = 1;
+		//	m_ActiveScene->Shapes.push_back(sphere);
+		//}
+		//{ /* Sphere 9 */
+		//	Shapes::Sphere* sphere = new Shapes::Sphere();
+		//	sphere->Radius = 1.25f;
+		//	sphere->Position = glm::vec3{ 2.0f, 4.0f, 2.0f };
+		//	sphere->MaterialIndex = 2;
+		//	m_ActiveScene->Shapes.push_back(sphere);
+		//}
 
 		m_ActiveScene->ResetIndices();
 	}
@@ -133,6 +154,7 @@ public:
 	{
 		RenderConsole();
 		RenderShapeEditor();
+		RenderMaterialEditor();
 		RenderViewport();
 
 		if (m_ShouldRedraw)
@@ -176,6 +198,7 @@ private:
 		{
 			ImGui::TextColored(ImGui_Header1, "Camera Settings");
 		
+			ImGui::Text("X: %.1f Y: %.1f Z: %.1f", m_ActiveCamera->GetPosition().x, m_ActiveCamera->GetPosition().y, m_ActiveCamera->GetPosition().z);
 			recalculateProjection |= ImGui::DragFloat("FOV", &m_ActiveCamera->VerticalFOV, 0.1f, 0.0f, 179.9f);
 			recalculateProjection |= ImGui::DragFloat("Near Plane", &m_ActiveCamera->NearPlane, 0.0f, m_ActiveCamera->FarPlane);
 			recalculateProjection |= ImGui::DragFloat("Far Plane", &m_ActiveCamera->FarPlane, m_ActiveCamera->NearPlane, std::numeric_limits<float>::max());
@@ -201,6 +224,30 @@ private:
 			ImGui::Text("Sphere %d", shape->ShapeIndex + 1);
 			m_ShouldRedraw |= ImGui::DragFloat3("Position", glm::value_ptr(shape->Position), 0.1f);
 			m_ShouldRedraw |= ImGui::DragFloat("Radius", &shape->Radius, 0.1f, 0.0f, std::numeric_limits<float>::max());
+			m_ShouldRedraw |= ImGui::DragInt("Material", &shape->MaterialIndex, 1, 0, (int)m_ActiveScene->Materials.size() - 1);
+
+			ImGui::Separator();
+			ImGui::PopID();
+		}
+
+		ImGui::End();
+	}
+
+	void RenderMaterialEditor()
+	{
+		ImGui::Begin("Materials Editor");
+
+		for (size_t i = 0; i < m_ActiveScene->Materials.size(); i++)
+		{
+			ImGui::PushID((int)i);
+
+			ImGui::Text("Material %d", i);
+
+			Material* material = m_ActiveScene->Materials[i];
+			m_ShouldRedraw |= ImGui::ColorEdit3("Albedo", glm::value_ptr(material->Albedo));
+			m_ShouldRedraw |= ImGui::DragFloat("Opacity", &material->Opacity, 0.01f, 0.0f, 1.0f);
+			m_ShouldRedraw |= ImGui::DragFloat("Roughness", &material->Roughness, 0.01f, 0.0f, 1.0f);
+			m_ShouldRedraw |= ImGui::DragFloat("Refraction Index", &material->RefractivityIndex, 0.01f, 0.0f);
 
 			ImGui::Separator();
 			ImGui::PopID();

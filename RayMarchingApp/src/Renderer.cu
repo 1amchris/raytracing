@@ -21,13 +21,14 @@
 #include "Hardware.hpp"
 
 
-#define MAX_STEP_COUNT 250
+#define MAX_STEP_COUNT 2500
 #define MAX_BOUNCE_COUNT 10
-#define MIN_DISTANCE_TO_COLLIDE 1e-3f
+#define MIN_DISTANCE_TO_COLLIDE 1e-4f
 
 class ClosestEntity {
 public:
 	float Distance;
+	float AbsoluteDistance;
 	int ShapeIndex;
 };
 
@@ -46,21 +47,22 @@ static ClosestEntity FindClosestShape(
 	const glm::vec3 point, const Interval<float>& interval, 
 	const Shapes::Sphere* shapes, const size_t shapesCount)
 {
-	// TODO: I should probably handle the case where the 
-	// closest is actually closer than the given interval.
 	ClosestEntity result{};
 	result.Distance = interval.Max;
+	result.AbsoluteDistance = glm::abs(interval.Max);
 	result.ShapeIndex = -1;
 
 	for (int shapeIndex = 0; shapeIndex < shapesCount; ++shapeIndex)
 	{
 		Shapes::Sphere shape = shapes[shapeIndex];
 		float distanceToShape = glm::length(point - shape.Position) - shape.Radius;
+		float absoluteDistance = glm::abs(distanceToShape);
 
-		if (distanceToShape < result.Distance)
+		if (absoluteDistance < result.Distance)
 		{
 			result.ShapeIndex = shapeIndex;
 			result.Distance = distanceToShape;
+			result.AbsoluteDistance = absoluteDistance;
 		}
 	}
 
@@ -76,17 +78,12 @@ static RayIntersectionPayload MarchRay(
 	int step = 0;
 	for (;step < MAX_STEP_COUNT; ++step)
 	{
-		/* I need to handle the "marching" differently when I'm inside of an object */
-
 		glm::vec3 point = ray.Origin + ray.Direction * distanceMarched;
 		if (interval.Max <= glm::distance(sourcePosition, point))
 			break;
 
 		ClosestEntity closestShape = FindClosestShape(point, interval, shapes, shapesCount);
-
-		// We're adding the absolute values, because we also want to keep 
-		// moving when inside of an object (SDF will return a negative Distance)
-		distanceMarched += glm::abs(closestShape.Distance);
+		distanceMarched += closestShape.AbsoluteDistance;
 
 		if (closestShape.Distance < MIN_DISTANCE_TO_COLLIDE)
 		{
@@ -96,7 +93,7 @@ static RayIntersectionPayload MarchRay(
 			payload.StepCount = step;
 			payload.ShapeIndex = closestShape.ShapeIndex;
 			payload.SurfaceNormal = glm::normalize(payload.IntersectionPosition - shapes[closestShape.ShapeIndex].Position);
-			payload.InsideShape = closestShape.Distance < -MIN_DISTANCE_TO_COLLIDE;
+			payload.InsideShape = closestShape.Distance <= -MIN_DISTANCE_TO_COLLIDE;
 			return payload;
 		}
 	}
@@ -157,43 +154,43 @@ static void RayGen(
 
 		const Shapes::Sphere shape = shapes[payload.ShapeIndex];
 		const Material material = materials[shape.MaterialIndex];
+		const glm::vec3 normalAgainstRay = payload.InsideShape ? -payload.SurfaceNormal : payload.SurfaceNormal;
+
+		if (payload.InsideShape)
+			light *= glm::min(glm::vec3{ 1.0f }, material.Albedo * (1.0f - material.Opacity) / payload.IntersectionDistance);
+		else
+			light *= material.Albedo;
+
 
 		/* Material is refractive */
-		if (material.RefractiveIndex >= 0.0f)
+		if (material.RefractivityIndex > 1.0f)
 		{
-			// The following might give weird results when two objects collide/intersect, but it'll do for now.
-			const float refractionIndicesRatio = payload.InsideShape
-				? material.RefractiveIndex
-				: (/* Air */ 1.0f / material.RefractiveIndex);
-		
-			glm::vec3 unitDirection = glm::normalize(ray.Direction);
-			float cosTheta = glm::min(glm::dot(-unitDirection, payload.SurfaceNormal), 1.0f);
+			const float eta = payload.InsideShape ? material.RefractivityIndex : (/* Void */ 1.0f / material.RefractivityIndex);
 
-			if (Reflectance(cosTheta, refractionIndicesRatio) <= curand_uniform(&localState))
+			const float cosTheta = glm::dot(-ray.Direction, normalAgainstRay);
+			const float sinThetaSquared = 1.0f - cosTheta * cosTheta;
+			const bool canRefract = eta * eta * sinThetaSquared <= 1.0f;
+
+			if (canRefract) 
 			{
-				float sinTheta = glm::sqrt(1.0f - cosTheta * cosTheta);
-				bool canRefract = refractionIndicesRatio * sinTheta <= 1.0f;
-
-				if (canRefract) {
-					ray.Origin = payload.IntersectionPosition - payload.SurfaceNormal * MIN_DISTANCE_TO_COLLIDE * 10.0f;
-					glm::vec3 refractedRayDirection = glm::refract(unitDirection, payload.SurfaceNormal, refractionIndicesRatio);
-					ray.Direction = glm::normalize(refractedRayDirection + material.Roughness * RandomPointInUnitSphere(&localState));
-					continue;
-				}
+				ray.Origin = payload.IntersectionPosition - normalAgainstRay * MIN_DISTANCE_TO_COLLIDE * 10.0f;
+				ray.Direction = glm::refract(ray.Direction, normalAgainstRay, eta);
+				continue;
 			}
 		}
-		
+
 		/* Material is not transparent, or total reflection */
-		{
-			light *= material.Albedo;
-			ray.Origin = payload.IntersectionPosition + payload.SurfaceNormal * MIN_DISTANCE_TO_COLLIDE * 10.0f;
-			glm::vec3 reflectedRayDirection = glm::reflect(ray.Direction, payload.SurfaceNormal);
+		{	
+			ray.Origin = payload.IntersectionPosition + normalAgainstRay * MIN_DISTANCE_TO_COLLIDE * 10.0f;
+			glm::vec3 reflectedRayDirection = glm::reflect(ray.Direction, normalAgainstRay);
 			ray.Direction = glm::normalize(reflectedRayDirection + material.Roughness * RandomPointInUnitSphere(&localState));
+			
 			continue;
 		}
 	}
 
-	glm::vec4 color{ Utils::LinearToGammaTransform(light), 1.0f };
+	//glm::vec4 color{ Utils::LinearToGammaTransform(light), 1.0f };
+	glm::vec4 color{ light, 1.0f };
 	imageAccumulator[inlineCoord] += color;
 	glm::vec4 averageColor = imageAccumulator[inlineCoord] / (float)frameIndex;
 	averageColor = glm::clamp(averageColor, { 0.0f }, { 1.0f });
@@ -239,7 +236,7 @@ void Renderer::Render(const Scene* scene, const Camera* camera)
 	if (m_FrameIndex == 1)
 		cudaMemset(m_AccumulationData, 0, imageSize * sizeof(glm::vec4));
 
-	// I should try to parallellize this. It's the most of my render time.
+	// I should try to parallellize this/save and reuse. It's the most of my render time.
 	uint32_t* p_resultingImage;
 	cudaMallocManaged(&p_resultingImage, imageSize * sizeof(uint32_t));
 	

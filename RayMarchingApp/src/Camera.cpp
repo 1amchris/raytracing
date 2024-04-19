@@ -26,12 +26,10 @@ bool Camera::OnUpdate(float timeStep)
 
 	glm::vec3 rightDirection = glm::cross(m_Direction, m_UpDirection);
 
-	float movementSpeed = GetMovementSpeed();
-
 	// Movement
 	if (Walnut::Input::IsKeyDown(Walnut::KeyCode::W))
 	{
-		glm::vec3 distance = m_Direction * movementSpeed * timeStep;
+		glm::vec3 distance = m_Direction * GetMovementSpeed() * timeStep;
 		if (Walnut::Input::IsKeyDown(Walnut::KeyCode::LeftControl))
 			distance *= 25.0f;
 		m_Position += distance;
@@ -39,7 +37,7 @@ bool Camera::OnUpdate(float timeStep)
 	}
 	if (Walnut::Input::IsKeyDown(Walnut::KeyCode::S))
 	{
-		glm::vec3 distance = m_Direction * movementSpeed * timeStep;
+		glm::vec3 distance = m_Direction * GetMovementSpeed() * timeStep;
 		if (Walnut::Input::IsKeyDown(Walnut::KeyCode::LeftControl))
 			distance *= 25.0f;
 		m_Position -= distance;
@@ -47,22 +45,22 @@ bool Camera::OnUpdate(float timeStep)
 	}
 	if (Walnut::Input::IsKeyDown(Walnut::KeyCode::D))
 	{
-		m_Position += rightDirection * movementSpeed * timeStep;
+		m_Position += rightDirection * GetMovementSpeed() * timeStep;
 		hasMoved = true;
 	}
 	if (Walnut::Input::IsKeyDown(Walnut::KeyCode::A))
 	{
-		m_Position -= rightDirection * movementSpeed * timeStep;
+		m_Position -= rightDirection * GetMovementSpeed() * timeStep;
 		hasMoved = true;
 	}
 	if (Walnut::Input::IsKeyDown(Walnut::KeyCode::LeftShift))
 	{
-		m_Position -= m_UpDirection * movementSpeed * timeStep;
+		m_Position -= m_UpDirection * GetMovementSpeed() * timeStep;
 		hasMoved = true;
 	}
 	if (Walnut::Input::IsKeyDown(Walnut::KeyCode::Space))
 	{
-		m_Position += m_UpDirection * movementSpeed * timeStep;
+		m_Position += m_UpDirection * GetMovementSpeed() * timeStep;
 		hasMoved = true;
 	}
 
@@ -120,7 +118,7 @@ void Camera::RecalculateProjection()
 
 void Camera::RecalculateView()
 {
-	m_View = glm::lookAt(m_Position, m_Position + m_Direction, glm::vec3{ 0.0f, 1.0f, 0.0f });
+	m_View = glm::lookAt(m_Position, m_Position + m_Direction, m_UpDirection);
 	m_InverseView = glm::inverse(m_View);
 }
 
@@ -134,8 +132,7 @@ void Camera::RecalculateRayDirections()
 	{
 		for (uint32_t x = 0; x < m_ViewportWidth; x++)
 		{
-			//glm::vec2 coord{ (x + 0.5f) / m_ViewportWidth, (y + 0.5f) / m_ViewportHeight };
-			glm::vec2 coord { (float)x / (float)m_ViewportWidth, (float)y / (float)m_ViewportHeight };
+			glm::vec2 coord{ (x + 0.5f) / m_ViewportWidth, (y + 0.5f) / m_ViewportHeight };
 			coord = coord * 2.0f - 1.0f; // [-1.0, 1.0]
 
 			glm::vec4 target = m_InverseProjection * glm::vec4{ coord, 1.0f, 1.0f };
@@ -143,16 +140,16 @@ void Camera::RecalculateRayDirections()
 			uint32_t inlineCoord = x + y * m_ViewportWidth;
 			m_RayDirections[inlineCoord] = rayDirection;
 
-			//float d = glm::distance(glm::vec2{ 0.0f }, glm::vec2{ target });
-			//float aspectRatio = static_cast<float>(m_ViewportWidth) / static_cast<float>(m_ViewportHeight);
-			//float dx = aspectRatio * m_Projection[0][0] * 0.5f;
-			//float dy = m_Projection[1][1] * 0.5f;
+			// Double check this. I think it's fine, but haven't done a lot of testing.
+			float d = glm::distance(glm::vec2{ 0.0f }, glm::vec2{ target });
+			float aspectRatio = static_cast<float>(m_ViewportWidth) / static_cast<float>(m_ViewportHeight);
+			float dx = aspectRatio * m_Projection[0][0] * 0.5f;
+			float dy = m_Projection[1][1] * 0.5f;
 
-			//glm::vec3 dxDirection = glm::normalize(glm::cross(m_UpDirection, rayDirection)) * dx;
-			//glm::vec3 dyDirection = glm::cross(rayDirection, dxDirection) * dy;
+			glm::vec3 dxDirection = glm::normalize(glm::cross(m_UpDirection, rayDirection)) * dx;
+			glm::vec3 dyDirection = glm::cross(rayDirection, dxDirection) * dy;
 
-			//m_RayDifferentials[inlineCoord] = { dxDirection, dyDirection };
-			m_RayDifferentials[inlineCoord] = { glm::vec3{ 0.0f }, glm::vec3{ 0.0f } };
+			m_RayDifferentials[inlineCoord] = { dxDirection, dyDirection };
 		}
 	}
 }
